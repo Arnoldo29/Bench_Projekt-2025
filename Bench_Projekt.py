@@ -53,7 +53,7 @@ class TestDataGenerator:
     def generate_country(self):
         """Generiert ein zufälliges Land."""
         countries = ['Deutschland', 'Polen', 'Österreich', 'Niederlande', 'Schweiz']  # Definiert eine Liste von Ländern
-        return random.choice(countries)  # Wählt zufällig ein Land aus der Liste
+        return random.choice(countries)  # Wählt zuf��llig ein Land aus der Liste
 
     def generate_phone_number(self):
         """Generiert eine zufällige Telefonnummer."""
@@ -99,7 +99,7 @@ class TestDataGenerator:
             'benutzername': self.generate_username(),  # Generiert einen Benutzernamen
             'passwort': password,  # Fügt das Passwort hinzu
             'passwort_wiederholen': password,  # Wiederholt das Passwort
-            'AGB akzeptieren': False  # Setzt den Wert für AGB akzeptieren auf False
+            'AGB akzeptieren': self.fake.boolean()  # Setzt den Wert für AGB akzeptieren auf True
         }
 
     def generate_login(self):
@@ -210,11 +210,6 @@ if st.button('Daten generieren'):
     data_list = generate_data(generator, data_type, num_records)  # Generiert die Daten
     df = pd.DataFrame(data_list)  # Erstellt ein DataFrame aus den generierten Daten
     st.subheader('**Generierte Daten**')  # Fügt einen mittleren großen Titel in Bolt hinzu
-    if data_type == 'registrierung':
-        if 'AGB akzeptieren' not in df.columns:
-            df['AGB akzeptieren'] = False  # Fügt die Spalte 'AGB akzeptieren' hinzu, falls nicht vorhanden
-        for i in range(len(df)):
-            df.at[i, 'AGB akzeptieren'] = st.checkbox('', value=df.at[i, 'AGB akzeptieren'], key=f'agb_checkbox_{i}')  # Fügt Checkboxen hinzu
     st.dataframe(df)  # Anzeige der generierten Daten in tabellarischer Form
 
 # Auswahlbox zur Auswahl des Exportformats
