@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 import uvicorn
 from threading import Thread
+from fastapi import HTTPException
 import requests  # Import the requests module
 
 # Initialize FastAPI
@@ -26,7 +27,8 @@ class TestDataGenerator:
         username = self.fake.user_name()
         # Überprüfe auf Sonderzeichen / Check for special characters
         if re.search(r'[^a-zA-Z0-9_]', username):
-            raise ValueError("Benutzername enthält Sonderzeichen!")  # Fehler auslösen, wenn Sonderzeichen gefunden werden / Raise error if special characters are found
+            print(
+                "Fehler: Benutzername enthält Sonderzeichen!")  # Fehler anzeigen, wenn Sonderzeichen gefunden werden / Display error if special characters are found
         return username
 
     def generate_password(self):
@@ -166,9 +168,12 @@ def generate_data_api(data_type: str, num_records: int):
 
 @app.post("/login")
 async def login(username: str, password: str):
-    if re.search(r'[^a-zA-Z0-9_]', username):
-        return JSONResponse({"error": "Der Benutzername ist nicht gültig"}, status_code=400)
-    return JSONResponse({"Benutzername": username, "passwort": password})
+    try:
+        if re.search(r'[^a-zA-Z0-9_]', username):
+            raise ValueError("Benutzername enthält Sonderzeichen!")
+        return JSONResponse({"Benutzername": username, "passwort": password})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # Streamlit UI
 st.title('Testdaten-Generator')
@@ -195,13 +200,20 @@ if st.button('🛠️ Daten generieren'):
         elif data_type == 'registrierung':
             st.subheader("📋 Registrierungsdetails")
             st.dataframe(df)  # Als DataFrame anzeigen / Display as DataFrame
+
+        elif data_type == 'login':
+            st.subheader("🔑 Login-Details")
+            st.dataframe(df)  # Als DataFrame anzeigen / Display as DataFrame
+        elif data_type == 'profil':
+            st.subheader("👤 Profildetails")
+            st.dataframe(df)  # Als DataFrame anzeigen / Display as DataFrame
     except ValueError as e:
         st.error(str(e))
 
 # Wenn Daten bereits generiert wurden, anzeigen / If data has already been generated, display it
-if 'generated_data' in st.session_state:
-    st.subheader("📊 Generierte Daten")
-    st.dataframe(st.session_state['generated_data'])
+#if 'generated_data' in st.session_state:
+   # st.subheader("📊 Generierte Daten")
+   # st.dataframe(st.session_state['generated_data'])
 
 # Exportfunktion / Export function
 st.subheader('**📤 Exportieren Sie die Daten**')
