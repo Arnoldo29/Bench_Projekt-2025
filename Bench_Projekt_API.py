@@ -14,40 +14,40 @@ import requests  # Import the requests module
 # Initialize FastAPI
 app = FastAPI()
 
-# Class for generating test data
+# Klasse zur Generierung von Testdaten / Class for generating test data
 class TestDataGenerator:
     def __init__(self):
-        # Initialize Faker with various localizations
+        # Initialisiere Faker mit verschiedenen Lokalisierungen / Initialize Faker with various localizations
         self.fake = Faker(['de_DE', 'pl_PL', 'de_AT', 'nl_NL', 'de_CH'])
         self.genders = ['Männlich', 'Weiblich', 'Divers', 'Keine Angabe']
 
     def generate_username(self):
-        # Generate a username
+        # Generiere einen Benutzernamen / Generate a username
         username = self.fake.user_name()
-        # Check for special characters
+        # Überprüfe auf Sonderzeichen / Check for special characters
         if re.search(r'[^a-zA-Z0-9_]', username):
-            raise ValueError("Benutzername enthält Sonderzeichen!")  # Raise error if special characters are found
+            raise ValueError("Benutzername enthält Sonderzeichen!")  # Fehler auslösen, wenn Sonderzeichen gefunden werden / Raise error if special characters are found
         return username
 
     def generate_password(self):
-        # Generate a password
+        # Generiere ein Passwort / Generate a password
         return self.fake.password()
 
     def generate_email(self):
-        # Generate an email address
+        # Generiere eine E-Mail-Adresse / Generate an email address
         return self.fake.email()
 
     def generate_product(self):
-        # Randomly select a product
+        # Wähle ein Produkt zufällig aus / Randomly select a product
         products = ['Kaffee', 'Espresso', 'Latte', 'Cappuccino', 'Mokka']
         return random.choice(products)
 
     def generate_last_name(self):
-        # Generate a last name
+        # Generiere einen Nachnamen / Generate a last name
         return self.fake.last_name()
 
     def generate_first_name(self, gender):
-        # Generate a first name based on gender
+        # Generiere einen Vornamen basierend auf dem Geschlecht / Generate a first name based on gender
         if gender == 'Männlich':
             return self.fake.first_name_male()
         elif gender == 'Weiblich':
@@ -56,47 +56,47 @@ class TestDataGenerator:
             return self.fake.first_name()
 
     def generate_street(self):
-        # Generate a street name
+        # Generiere einen Straßennamen / Generate a street name
         return self.fake.street_name()
 
     def generate_city(self):
-        # Generate a city name
+        # Generiere einen Stadtnamen / Generate a city name
         return self.fake.city()
 
     def generate_country(self):
-        # Randomly select a country
+        # Wähle ein Land zufällig aus / Randomly select a country
         countries = ['Deutschland', 'Polen', 'Österreich', 'Niederlande', 'Schweiz']
         return random.choice(countries)
 
     def generate_phone_number(self):
-        # Generate a phone number
+        # Generiere eine Telefonnummer / Generate a phone number
         return self.fake.phone_number()
 
     def generate_postal_code(self):
-        # Generate a postal code
+        # Generiere eine Postleitzahl / Generate a postal code
         return self.fake.postcode()
 
     def generate_age(self):
-        # Generate an age between 18 and 99
+        # Generiere ein Alter zwischen 18 und 99 / Generate an age between 18 and 99
         return random.randint(18, 99)
 
     def generate_gender(self):
-        # Randomly select a gender
+        # Wähle ein Geschlecht zufällig aus / Randomly select a gender
         return random.choice(self.genders)
 
     def generate_bestellung(self, city, country, gender):
-        # Generate an order
+        # Generiere eine Bestellung / Generate an order
         product = self.generate_product()
         quantity = random.randint(1, 5)
-        price = round(random.uniform(1.0, 10.0) * quantity, 2)  # Generate a random price
+        price = round(random.uniform(1.0, 10.0) * quantity, 2)  # Generiere einen zufälligen Preis / Generate a random price
         return {
             'produkt': product,
             'menge': quantity,
-            'preis': f"{price} €",  # Add price to the order with Euro symbol
+            'preis': f"{price} €",  # Preis zur Bestellung hinzufügen mit Euro-Symbol / Add price to the order with Euro symbol
         }
 
     def generate_registration(self):
-        # Generate a registration
+        # Generiere eine Registrierung / Generate a registration
         password = self.generate_password()
         return {
             'benutzername': self.generate_username(),
@@ -106,14 +106,14 @@ class TestDataGenerator:
         }
 
     def generate_login(self):
-        # Generate a login
+        # Generiere einen Login / Generate a login
         return {
             'benutzername': self.generate_username(),
             'passwort': self.generate_password()
         }
 
     def generate_profile(self, city, country):
-        # Generate a profile
+        # Generiere ein Profil / Generate a profile
         gender = self.generate_gender()
         return {
             'nachname': self.generate_last_name(),
@@ -129,7 +129,7 @@ class TestDataGenerator:
         }
 
     def export_data(self, data, format='json'):
-        # Exports the data in the specified format
+        # Exportiere die Daten im angegebenen Format / Exports the data in the specified format
         if format == 'json':
             return json.dumps(data.to_dict(orient='records'), indent=4, ensure_ascii=False)
         elif format == 'csv':
@@ -142,7 +142,7 @@ class TestDataGenerator:
         else:
             raise ValueError("Unsupported format")
 
-# API endpoint for generating test data
+# API-Endpunkt zur Generierung von Testdaten / API endpoint for generating test data
 @app.get("/generate/{data_type}/{num_records}")
 def generate_data_api(data_type: str, num_records: int):
     generator = TestDataGenerator()
@@ -174,34 +174,34 @@ st.subheader('Willkommen beim Testdaten-Generator für einen Coffeeshop!')
 
 generator = TestDataGenerator()
 
-# Dropdowns for user
+# Dropdowns für den Benutzer / Dropdowns for user
 data_type = st.selectbox('Datentyp wählen', ['registrierung', 'login', 'profil', 'bestellung'])
 num_records = st.number_input('Anzahl der Datensätze', min_value=1, max_value=1000, value=100)
 
-# Button to generate data
+# Button zum Generieren von Daten / Button to generate data
 if st.button('🛠️ Daten generieren'):
     try:
-        data_list = generate_data_api(data_type, num_records)  # Fetch data
-        df = pd.DataFrame(data_list)  # Convert to DataFrame
-        st.session_state['generated_data'] = df  # Save for later use
+        data_list = generate_data_api(data_type, num_records)  # Daten abrufen / Fetch data
+        df = pd.DataFrame(data_list)  # In DataFrame umwandeln / Convert to DataFrame
+        st.session_state['generated_data'] = df  # Für spätere Verwendung speichern / Save for later use
         st.success(f"{num_records} Datensätze generiert!")
 
-        # Display data in DataFrame format if "Bestellung" is selected
+        # Daten im DataFrame-Format anzeigen, wenn "Bestellung" ausgewählt ist / Display data in DataFrame format if "Bestellung" is selected
         if data_type == 'bestellung':
             st.subheader("📦 Bestelldetails")
-            st.dataframe(df)  # Display as DataFrame
+            st.dataframe(df)  # Als DataFrame anzeigen / Display as DataFrame
         elif data_type == 'registrierung':
             st.subheader("📋 Registrierungsdetails")
-            st.dataframe(df)  # Display as DataFrame
+            st.dataframe(df)  # Als DataFrame anzeigen / Display as DataFrame
     except ValueError as e:
         st.error(str(e))
 
-# If data has already been generated, display it
+# Wenn Daten bereits generiert wurden, anzeigen / If data has already been generated, display it
 if 'generated_data' in st.session_state:
     st.subheader("📊 Generierte Daten")
     st.dataframe(st.session_state['generated_data'])
 
-# Export function
+# Exportfunktion / Export function
 st.subheader('**📤 Exportieren Sie die Daten**')
 format = st.selectbox('Exportformat auswählen', ['json', 'csv', 'xlsx'])
 if st.button('💾 Daten exportieren'):
@@ -219,7 +219,7 @@ if st.button('💾 Daten exportieren'):
     else:
         st.warning("⚠️ Bitte zuerst Daten generieren!")
 
-# Start API in a separate thread
+# API in einem separaten Thread starten / Start API in a separate thread
 def run_api():
     uvicorn.run(app, host='0.0.0.0', port=8000)
 
