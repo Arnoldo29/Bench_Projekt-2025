@@ -166,6 +166,8 @@ def generate_data_api(data_type: str, num_records: int):
 
 @app.post("/login")
 async def login(username: str, password: str):
+    if re.search(r'[^a-zA-Z0-9_]', username):
+        return JSONResponse({"error": "Der Benutzername ist nicht gültig"}, status_code=400)
     return JSONResponse({"Benutzername": username, "passwort": password})
 
 # Streamlit UI
