@@ -10,6 +10,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import uvicorn
 from threading import Thread
 from fastapi import HTTPException
+from fastapi.responses import FileResponse
+import tempfile
+import os
 import requests  # Import the requests module
 
 # Initialize FastAPI
@@ -175,6 +178,151 @@ async def login(username: str, password: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+#@app.get("/export_data/csv")
+#def export_data_csv():
+    # Logic to generate and return the CSV file
+  #  file_path = "path/to/your/data.csv"
+   # return FileResponse(file_path, media_type='text/csv', filename="data.csv")
+
+# Dummy data for export
+data = pd.DataFrame({
+    'name': ['Alice', 'Bob'],
+    'age': [25, 30]
+})
+
+# Save the DataFrame to a temporary file
+#with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+   # data.to_csv(tmp.name, index=False)
+   # tmp_path = tmp.name
+
+# Check if the file exists
+#if os.path.exists(tmp_path):
+  #  print(f"File {tmp_path} exists.")
+#else:
+  #  print(f"File {tmp_path} does not exist.")
+
+@app.get("/export_data/json")
+def export_data_json():
+    json_data = data.to_json(orient='records')
+    return JSONResponse(content=json_data)
+
+#@app.get("/export_data/csv")
+#def export_data_csv():
+  #  csv_data = data.to_csv(index=False)
+  #  with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+  #      tmp.write(csv_data.encode())
+   #     tmp_path = tmp.name
+  #  return FileResponse(tmp_path, media_type='text/csv', filename="data.csv")
+
+@app.get("/export_data/xlsx")
+def export_data_xlsx():
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        data.to_excel(writer, index=False, sheet_name='Sheet1')
+    output.seek(0)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        tmp.write(output.read())
+        tmp_path = tmp.name
+    return FileResponse(tmp_path, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename="data.xlsx")
+
+# API endpoint for generating test data
+@app.get("/generate/{data_type}/{num_records}")
+def generate_data_api(data_type: str, num_records: int):
+    generator = TestDataGenerator()
+    data_list = []
+    for _ in range(num_records):
+        city = generator.generate_city()
+        country = generator.generate_country()
+        if data_type == 'bestellung':
+            gender = generator.generate_gender()
+            data = generator.generate_bestellung(city, country, gender)
+        elif data_type == 'registrierung':
+            data = generator.generate_registration()
+        elif data_type == 'login':
+            data = generator.generate_login()
+        elif data_type == 'profil':
+            data = generator.generate_profile(city, country)
+        else:
+            raise HTTPException(status_code=404, detail="Invalid data type")
+        data_list.append(data)
+    return data_list
+
+# API endpoint for generating test data
+@app.get("/generate/{data_type}/{num_records}")
+def generate_data_api(data_type: str, num_records: int):
+    if num_records > 10000:  # Set a limit for the number of records
+        raise HTTPException(status_code=400, detail="Number of records too large")
+
+    generator = TestDataGenerator()
+    data_list = []
+    for _ in range(num_records):
+        city = generator.generate_city()
+        country = generator.generate_country()
+        if data_type == 'bestellung':
+            gender = generator.generate_gender()
+            data = generator.generate_bestellung(city, country, gender)
+        elif data_type == 'registrierung':
+            data = generator.generate_registration()
+        elif data_type == 'login':
+            data = generator.generate_login()
+        elif data_type == 'profil':
+            data = generator.generate_profile(city, country)
+        else:
+            raise HTTPException(status_code=404, detail="Invalid data type")
+        data_list.append(data)
+    return data_list
+
+@app.get("/generate/{data_type}/{num_records}")
+def generate_data_api(data_type: str, num_records: int):
+    if num_records <= 0:  # Check for non-positive number of records
+        raise HTTPException(status_code=400, detail="Number of records must be positive")
+
+    generator = TestDataGenerator()
+    data_list = []
+    for _ in range(num_records):
+        city = generator.generate_city()
+        country = generator.generate_country()
+        if data_type == 'bestellung':
+            gender = generator.generate_gender()
+            data = generator.generate_bestellung(city, country, gender)
+        elif data_type == 'registrierung':
+            data = generator.generate_registration()
+        elif data_type == 'login':
+            data = generator.generate_login()
+        elif data_type == 'profil':
+            data = generator.generate_profile(city, country)
+        else:
+            raise HTTPException(status_code=404, detail="Invalid data type")
+        data_list.append(data)
+    return data_list
+
+@app.get("/generate/{data_type}/{num_records}")
+def generate_data_api(data_type: str, num_records: int):
+    if num_records <= 0:  # Check for non-positive number of records
+        raise HTTPException(status_code=400, detail="Number of records must be positive")
+    if num_records > 10000:  # Set a limit for the number of records
+        raise HTTPException(status_code=400, detail="Number of records too large")
+
+    generator = TestDataGenerator()
+    data_list = []
+    for _ in range(num_records):
+        city = generator.generate_city()
+        country = generator.generate_country()
+        if data_type == 'bestellung':
+            gender = generator.generate_gender()
+            data = generator.generate_bestellung(city, country, gender)
+        elif data_type == 'registrierung':
+            data = generator.generate_registration()
+        elif data_type == 'login':
+            data = generator.generate_login()
+        elif data_type == 'profil':
+            data = generator.generate_profile(city, country)
+        else:
+            raise HTTPException(status_code=404, detail="Invalid data type")
+        data_list.append(data)
+    return data_list
+
+
 # Streamlit UI
 st.title('Testdaten-Generator')
 st.subheader('Willkommen beim Testdaten-Generator für einen Coffeeshop!')
@@ -239,3 +387,6 @@ def run_api():
 
 thread = Thread(target=run_api, daemon=True)
 thread.start()
+
+if __name__ == "__main__":
+    st.write("API gestartet auf http://localhost:8000")
