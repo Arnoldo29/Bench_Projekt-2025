@@ -193,7 +193,7 @@ data_type = st.selectbox('Datentyp wählen', ['registrierung', 'login', 'profil'
 num_records = st.number_input('Anzahl der Datensätze', min_value=1, max_value=10000, value=1)
 
 if st.button('🛠️ Daten generieren'):
-    if num_records < 1:
+    if num_records <= 0:
         st.error("Der eingegebene Datensatz stimmt nicht überein! Der soll ab 1 beginnen")
     else:
         try:
