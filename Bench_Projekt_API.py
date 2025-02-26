@@ -206,13 +206,13 @@ if st.button('🛠️ Daten generieren'):
                 st.subheader("📦 Bestelldetails")
                 st.dataframe(df)
             elif data_type == 'registrierung':
-                st.subheader("📋 Registrierungsdetails")
+                st.subheader("📋 Registrierungsdaten")
                 st.dataframe(df)
             elif data_type == 'login':
-                st.subheader("🔑 Login-Details")
+                st.subheader("🔑 Login-Daten")
                 st.dataframe(df)
             elif data_type == 'profil':
-                st.subheader("👤 Profildetails")
+                st.subheader("👤 Profildaten")
                 st.dataframe(df)
         except ValueError as e:
             st.error(str(e))
