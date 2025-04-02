@@ -4,6 +4,7 @@ import random
 import pandas as pd
 import json
 import io
+import os
 from faker import Faker
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
@@ -12,290 +13,161 @@ from threading import Thread
 import tempfile
 import dicttoxml
 
-# Initialize FastAPI
 # Initialisiere FastAPI
 app = FastAPI()
 
-# Class for generating test data
 # Klasse zur Generierung von Testdaten
 class TestDataGenerator:
     def __init__(self):
-        # Initialize Faker with multiple locales
-        # Initialisiere Faker mit mehreren Lokalen
         self.fake = Faker(['de_DE', 'pl_PL', 'de_AT', 'nl_NL', 'de_CH'])
         self.genders = ['Männlich', 'Weiblich', 'Divers', 'Keine Angabe']
 
-    def generate_username(self):
-        # Generate a username and check for special characters
-        # Generiere einen Benutzernamen und prüfe auf Sonderzeichen
-        username = self.fake.user_name()
-        if re.search(r'[^a-zA-Z0-9_]', username):
-            print("Fehler: Benutzername enthält Sonderzeichen!")
-        return username
+    def generate_username(self, valid=True):
+        if valid:
+            username = re.sub(r'[^a-zA-Z0-9ÄÖÜäöü]', '', self.fake.user_name())[:12]
+            return username if len(username) >= 4 else username + '1234'
+        else:
+            return self.fake.user_name() + '@#'
 
-    def generate_password(self):
-        # Generate a password
-        # Generiere ein Passwort
-        return self.fake.password()
+    def generate_password(self, valid=True):
+        if valid:
+            password = self.fake.password(length=random.randint(8, 20), special_chars=True, digits=True, upper_case=True, lower_case=True)
+            return password if re.match(r'^[a-zA-Z0-9ÄÖÜäöü@$!%*?]{8,20}$', password) else password + '@'
+        else:
+            return 'abc'  # Ungültiges Passwort mit zu wenigen Zeichen
 
     def generate_email(self):
-        # Generate an email address
-        # Generiere eine E-Mail-Adresse
         return self.fake.email()
 
-    def generate_product(self):
-        # Generate a random product from a list
-        # Generiere ein zufälliges Produkt aus einer Liste
+    def generate_bestellung(self):
         products = ['Kaffee', 'Espresso', 'Latte', 'Cappuccino', 'Mokka']
-        return random.choice(products)
-
-    def generate_last_name(self):
-        # Generate a last name
-        # Generiere einen Nachnamen
-        return self.fake.last_name()
-
-    def generate_first_name(self, gender):
-        # Generate a first name based on gender
-        # Generiere einen Vornamen basierend auf dem Geschlecht
-        if gender == 'Männlich':
-            return self.fake.first_name_male()
-        elif gender == 'Weiblich':
-            return self.fake.first_name_female()
-        else:
-            return self.fake.first_name()
-
-    def generate_street(self):
-        # Generate a street name
-        # Generiere einen Straßennamen
-        return self.fake.street_name()
-
-    def generate_city(self):
-        # Generate a city name
-        # Generiere einen Stadtnamen
-        return self.fake.city()
-
-    def generate_country(self):
-        # Generate a country name from a list
-        # Generiere einen Ländernamen aus einer Liste
-        countries = ['Deutschland', 'Polen', 'Österreich', 'Niederlande', 'Schweiz']
-        return random.choice(countries)
-
-    def generate_phone_number(self):
-        # Generate a phone number
-        # Generiere eine Telefonnummer
-        return self.fake.phone_number()
-
-    def generate_postal_code(self):
-        # Generate a postal code
-        # Generiere eine Postleitzahl
-        return self.fake.postcode()
-
-    def generate_age(self):
-        # Generate a random age between 18 and 99
-        # Generiere ein zufälliges Alter zwischen 18 und 99
-        return random.randint(18, 99)
-
-    def generate_gender(self):
-        # Generate a random gender from a list
-        # Generiere ein zufälliges Geschlecht aus einer Liste
-        return random.choice(self.genders)
-
-    def generate_bestellung(self, city, country, gender):
-        # Generate an order with product, quantity, and price
-        # Generiere eine Bestellung mit Produkt, Menge und Preis
-        product = self.generate_product()
         quantity = random.randint(1, 5)
         price = round(random.uniform(1.0, 10.0) * quantity, 2)
-        return {
-            'produkt': product,
-            'menge': quantity,
-            'preis': f"{price} €",
-        }
+        return {'produkt': random.choice(products), 'menge': quantity, 'preis': price, 'währung': 'EUR'}
 
-    def generate_registration(self):
-        # Generate registration data
-        # Generiere Registrierungsdaten
-        password = self.generate_password()
-        return {
-            'benutzername': self.generate_username(),
-            'passwort': password,
-            'passwort_wiederholen': password,
-            'AGB akzeptieren': self.fake.boolean()
-        }
 
-    def generate_login(self):
-        # Generate login data
-        # Generiere Login-Daten
-        return {
-            'benutzername': self.generate_username(),
-            'passwort': self.generate_password()
-        }
 
-    def generate_profile(self, city, country):
-        # Generate profile data
-        # Generiere Profildaten
-        gender = self.generate_gender()
+    def generate_registration(self, valid=True):
+        password = self.generate_password(valid)
+        return {'benutzername': self.generate_username(valid), 'passwort': password, 'passwort_wiederholen': password, 'AGB akzeptieren': self.fake.boolean()}
+
+    def generate_login(self, valid=True):
+        return {'benutzername': self.generate_username(valid), 'passwort': self.generate_password(valid)}
+
+    def generate_profile(self):
+        gender = random.choice(self.genders)
         return {
-            'nachname': self.generate_last_name(),
-            'vorname': self.generate_first_name(gender),
-            'straße': self.generate_street(),
-            'stadt': city,
-            'postleitzahl': self.generate_postal_code(),
-            'land': country,
-            'telefonnummer': self.generate_phone_number(),
-            'alter': self.generate_age(),
+            'nachname': self.fake.last_name(),
+            'vorname': self.fake.first_name(),
+            'straße': self.fake.street_name(),
+            'stadt': self.fake.city(),
+            'postleitzahl': self.fake.postcode(),
+            'land': self.fake.country(),
+            'telefonnummer': self.fake.phone_number(),
+            'alter': random.randint(18, 99),
             'geschlecht': gender,
-            'email': self.generate_email()
+            'email': self.fake.email()
         }
 
-    def export_data(self, data, format='json'):
-        # Export data in various formats
-        # Exportiere Daten in verschiedenen Formaten
+    def export_data(self, df, format):
         if format == 'json':
-            return json.dumps(data.to_dict(orient='records'), indent=4, ensure_ascii=False)
+            return df.to_json(orient='records', indent=4).encode('utf-8')
         elif format == 'csv':
-            return data.to_csv(index=False)
+            return df.to_csv(index=False).encode('utf-8')
         elif format == 'xlsx':
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                data.to_excel(writer, index=False, sheet_name='Sheet1')
+                df.to_excel(writer, index=False, sheet_name='Daten')
             return output.getvalue()
         elif format == 'xml':
-            return dicttoxml.dicttoxml(data.to_dict(orient='records'), custom_root='data', attr_type=False).decode()
-        elif format == 'txt':
-            return data.to_string(index=False)
+            xml_data = dicttoxml.dicttoxml(df.to_dict(orient='records'), custom_root='daten', attr_type=False)
+            return xml_data
         else:
-            raise ValueError("Unsupported format")
+            raise ValueError('Ungültiges Exportformat')
 
-@app.get("/generate/{data_type}/{num_records}")
-def generate_data_api(data_type: str, num_records: int):
-    # Generate data via API endpoint
-    # Generiere Daten über API-Endpunkt
-    if num_records <= 0:
-        raise HTTPException(status_code=400, detail="Keine Datensätze generiert! Die Anzahl der Datensätze muss größer als 0 sein.")
-    if num_records > 10000:
-        raise HTTPException(status_code=400, detail="Number of records too large")
-
+# API-Endpoints
+@app.get("/generate/{data_type}")
+def generate_data(data_type: str, count: int = 1, valid: bool = True):
     generator = TestDataGenerator()
     data_list = []
-    for _ in range(num_records):
-        city = generator.generate_city()
-        country = generator.generate_country()
-        if data_type == 'bestellung':
-            gender = generator.generate_gender()
-            data = generator.generate_bestellung(city, country, gender)
-        elif data_type == 'registrierung':
-            data = generator.generate_registration()
+    for _ in range(count):
+        if data_type == 'registrierung':
+            data_list.append(generator.generate_registration(valid))
         elif data_type == 'login':
-            data = generator.generate_login()
+            data_list.append(generator.generate_login(valid))
         elif data_type == 'profil':
-            data = generator.generate_profile(city, country)
+            data_list.append(generator.generate_profile())
+        elif data_type == 'bestellung':
+            data_list.append(generator.generate_bestellung())
         else:
-            raise HTTPException(status_code=404, detail="Invalid data type")
-        data_list.append(data)
-    return data_list
-
-@app.post("/login")
-async def login(username: str, password: str):
-    # Handle login request
-    # Bearbeite Login-Anfrage
-    try:
-        if re.search(r'[^a-zA-Z0-9_]', username):
-            raise ValueError("Benutzername enthält Sonderzeichen!")
-        return JSONResponse({"Benutzername": username, "passwort": password})
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-data = pd.DataFrame({
-    'name': ['Alice', 'Bob'],
-    'age': [25, 30]
-})
-
-@app.get("/export_data/json")
-def export_data_json():
-    # Export data as JSON
-    # Exportiere Daten als JSON
-    json_data = data.to_json(orient='records')
-    return JSONResponse(content=json_data)
-
-@app.get("/export_data/xlsx")
-def export_data_xlsx():
-    # Export data as XLSX
-    # Exportiere Daten als XLSX
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        data.to_excel(writer, index=False, sheet_name='Sheet1')
-    output.seek(0)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-        tmp.write(output.read())
-        tmp_path = tmp.name
-    return FileResponse(tmp_path, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename="data.xlsx")
+            raise HTTPException(status_code=400, detail="Ungültiger Datentyp")
+    return JSONResponse(content=data_list)
 
 # Streamlit UI
-# Streamlit Benutzeroberfläche
 st.title('Testdaten-Generator')
-st.subheader('Willkommen beim Testdaten-Generator für einen Coffeeshop!')
 
 generator = TestDataGenerator()
 
 data_type = st.selectbox('Datentyp wählen', ['registrierung', 'login', 'profil', 'bestellung'])
 num_records = st.number_input('Anzahl der Datensätze', min_value=1, max_value=10000, value=1)
 
-if st.button('🛠️ Daten generieren'):
-    if num_records <= 0:
-        st.error("Keine Datensätze generiert! Die Anzahl der Datensätze muss größer als 0 sein.")
-    else:
-        try:
-            data_list = generate_data_api(data_type, num_records)
-            df = pd.DataFrame(data_list)
-            st.session_state['generated_data'] = df
-            st.success(f"{num_records} Datensätze generiert!")
+if 'valid_data' not in st.session_state:
+    st.session_state['valid_data'] = None
+if 'invalid_data' not in st.session_state:
+    st.session_state['invalid_data'] = None
 
-            if data_type == 'bestellung':
-                st.subheader("📦 Bestelldetails")
-                st.dataframe(df)
-            elif data_type == 'registrierung':
-                st.subheader("📋 Registrierungsdaten")
-                st.dataframe(df)
-            elif data_type == 'login':
-                st.subheader("🔑 Login-Daten")
-                st.dataframe(df)
-            elif data_type == 'profil':
-                st.subheader("👤 Profildaten")
-                st.dataframe(df)
-        except ValueError as e:
-            st.error(str(e))
+if st.button('🛠️ Gültige Daten generieren'):
+    data_list = [
+        generator.generate_registration(valid=True) if data_type == 'registrierung' else
+        generator.generate_login(valid=True) if data_type == 'login' else
+        generator.generate_profile() if data_type == 'profil' else
+        generator.generate_bestellung()
+        for _ in range(num_records)
+    ]
+    df = pd.DataFrame(data_list)
+    st.session_state['valid_data'] = df
+    st.success(f'{num_records} gültige Datensätze generiert!')
+    st.dataframe(df)
 
-st.subheader('**📤 Exportieren Sie die Daten**')
-format = st.selectbox('Exportformat auswählen', ['json', 'csv', 'xlsx', 'xml', 'txt'])
-if st.button('💾 Daten exportieren'):
-    if 'generated_data' in st.session_state:
-        try:
-            exported_data = generator.export_data(st.session_state['generated_data'], format)
-            if format == 'json':
-                st.download_button(label='📥 Download JSON', data=exported_data, file_name='data.json', mime='application/json')
-            elif format == 'csv':
-                st.download_button(label='📥 Download CSV', data=exported_data, file_name='data.csv', mime='text/csv')
-            elif format == 'xlsx':
-                st.download_button(label='📥 Download XLSX', data=exported_data, file_name='data.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            elif format == 'xml':
-                st.download_button(label='📥 Download XML', data=exported_data, file_name='data.xml', mime='application/xml')
-            elif format == 'txt':
-                st.download_button(label='📥 Download TXT', data=exported_data, file_name='data.txt', mime='text/plain')
-        except ValueError as e:
-            st.error(f"Fehler: {str(e)}")
-    else:
-        st.warning("⚠️ Bitte zuerst Daten generieren!")
+if st.button('❌ Ungültige Daten generieren'):
+    data_list = [
+        generator.generate_registration(valid=False) if data_type == 'registrierung' else
+        generator.generate_login(valid=False) if data_type == 'login' else
+        generator.generate_profile() if data_type == 'profil' else
+        generator.generate_bestellung()
+        for _ in range(num_records)
+    ]
+    df = pd.DataFrame(data_list)
+    st.session_state['invalid_data'] = df
+    st.warning(f'{num_records} ungültige Datensätze generiert!')
+    st.dataframe(df)
 
-def run_api():
+st.subheader('📤 Daten exportieren')
+format = st.selectbox('Exportformat', ['json', 'csv', 'xlsx', 'xml'])
+if st.button('💾 Exportieren'):
+    if st.session_state['valid_data'] is not None:
+        exported_data = generator.export_data(st.session_state['valid_data'], format)
+        st.download_button(label=f'📥 Download {format.upper()} (gültig)', data=exported_data,
+                           file_name=f'valid_data.{format}', mime=f'application/{format}')
+    if st.session_state['invalid_data'] is not None:
+        exported_data = generator.export_data(st.session_state['invalid_data'], format)
+        st.download_button(label=f'📥 Download {format.upper()} (ungültig)', data=exported_data,
+                           file_name=f'invalid_data.{format}', mime=f'application/{format}')
+    if st.session_state['valid_data'] is None and st.session_state['invalid_data'] is None:
+        st.warning('⚠️ Keine generierten Daten zum Exportieren!')
+
+# Starte FastAPI-Server in einem Thread
+#def run_api():
     # Run the FastAPI server
     # Starte den FastAPI-Server
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    #uvicorn.run(app, host='127.0.0.1', port=8000, log_level="info")
 
-# Start the API server in a separate thread
-# Starte den API-Server in einem separaten Thread
-thread = Thread(target=run_api, daemon=True)
-thread.start()
+@app.get("/")
+def read_root():
+    return {"message": "Willkommen zur Testdaten-API! Verfügbare Endpunkte: /generate/{data_type}/{num_records}"}
 
 if __name__ == "__main__":
-    st.write("API gestartet auf http://localhost:8000")
+    thread = Thread(target=uvicorn.run, args=("API_Neu:app",), kwargs={"host": "127.0.0.1", "port": 8001})
+    thread.start()
+    #uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    st.write("API gestartet auf http://localhost:8001")
