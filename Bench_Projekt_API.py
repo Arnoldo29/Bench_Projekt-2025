@@ -24,17 +24,35 @@ class TestDataGenerator:
 
     def generate_username(self, valid=True):
         if valid:
-            username = re.sub(r'[^a-zA-Z0-9ÄÖÜäöü]', '', self.fake.user_name())[:12]
-            return username if len(username) >= 4 else username + '1234'
+            while True:
+                username = re.sub(r'[^a-zA-Z0-9ÄÖÜäöü]', '', self.fake.user_name())
+                if 4 <= len(username) <= 12:
+                    return username
         else:
             return self.fake.user_name() + '@#'
 
     def generate_password(self, valid=True):
         if valid:
-            password = self.fake.password(length=random.randint(8, 20), special_chars=True, digits=True, upper_case=True, lower_case=True)
-            return password if re.match(r'^[a-zA-Z0-9ÄÖÜäöü@$!%*?]{8,20}$', password) else password + '@'
+            while True:
+                password = self.fake.password(
+                    length=random.randint(8, 20),
+                    special_chars=True,
+                    digits=True,
+                    upper_case=True,
+                    lower_case=True
+                )
+                # Nur erlaubte Zeichen + Länge + mindestens ein Zeichen jeder Kategorie
+                if (
+                        8 <= len(password) <= 20 and
+                        re.match(r'^[a-zA-Z0-9@$!%*?]+$', password) and
+                        re.search(r'[a-z]', password) and
+                        re.search(r'[A-Z]', password) and
+                        re.search(r'\d', password) and
+                        re.search(r'[@$!%*?]', password)
+                ):
+                    return password
         else:
-            return 'abc'  # Ungültiges Passwort mit zu wenigen Zeichen
+            return 'abc'  # Ungültig: zu kurz, keine Sonderzeichen etc.
 
     def generate_email(self):
         return self.fake.email()
@@ -86,22 +104,32 @@ class TestDataGenerator:
             raise ValueError('Ungültiges Exportformat')
 
 # API-Endpoints
-@app.get("/generate/{data_type}")
-def generate_data(data_type: str, count: int = 1, valid: bool = True):
+@app.get("/generate/{data_type}/{num_records}")
+def generate_data_api(data_type: str, num_records: int):
+    if num_records <= 0:
+        raise HTTPException(status_code=400, detail="Keine Datensätze generiert! Die Anzahl der Datensätze muss größer als 0 sein.")
+    if num_records > 10000:
+        raise HTTPException(status_code=400, detail="Number of records too large")
+
     generator = TestDataGenerator()
     data_list = []
-    for _ in range(count):
-        if data_type == 'registrierung':
-            data_list.append(generator.generate_registration(valid))
+    for _ in range(num_records):
+
+        if data_type == 'bestellung':
+
+            data = generator.generate_bestellung()
+        elif data_type == 'registrierung':
+            data = generator.generate_registration()
         elif data_type == 'login':
-            data_list.append(generator.generate_login(valid))
+            data = generator.generate_login()
         elif data_type == 'profil':
-            data_list.append(generator.generate_profile())
-        elif data_type == 'bestellung':
-            data_list.append(generator.generate_bestellung())
+            data = generator.generate_profile()
         else:
-            raise HTTPException(status_code=400, detail="Ungültiger Datentyp")
-    return JSONResponse(content=data_list)
+            raise HTTPException(status_code=404, detail="Invalid data type")
+        data_list.append(data)
+    #return data_list
+    return JSONResponse(content=json.loads(json.dumps(data_list)))
+
 
 # Streamlit UI
 st.title('Testdaten-Generator')
