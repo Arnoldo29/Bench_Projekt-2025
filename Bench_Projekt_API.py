@@ -112,23 +112,28 @@ def generate_data_api(data_type: str, num_records: int):
         raise HTTPException(status_code=400, detail="Number of records too large")
 
     generator = TestDataGenerator()
-    data_list = []
+    valid_list = []
+    invalid_list = []
+
     for _ in range(num_records):
-
         if data_type == 'bestellung':
-
-            data = generator.generate_bestellung()
+            valid_list.append(generator.generate_bestellung())
+            invalid_list.append(generator.generate_bestellung())
         elif data_type == 'registrierung':
-            data = generator.generate_registration()
+            valid_list.append(generator.generate_registration(valid=True))
+            invalid_list.append(generator.generate_registration(valid=False))
         elif data_type == 'login':
-            data = generator.generate_login()
+            valid_list.append(generator.generate_login(valid=True))
+            invalid_list.append(generator.generate_login(valid=False))
         elif data_type == 'profil':
-            data = generator.generate_profile()
+            valid_list.append(generator.generate_profile())
+            invalid_list.append(generator.generate_profile())
         else:
-            raise HTTPException(status_code=404, detail="Invalid data type")
-        data_list.append(data)
-    #return data_list
-    return JSONResponse(content=json.loads(json.dumps(data_list)))
+            raise HTTPException(status_code=404, detail="Ungültiger Datentyp")
+
+    return JSONResponse(content={"gültige_daten": valid_list, "ungültige_daten": invalid_list})
+
+
 
 
 # Streamlit UI
